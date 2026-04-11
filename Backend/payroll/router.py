@@ -37,9 +37,22 @@ def calculate_payroll(data: PayrollRequest, current_user: dict = Depends(get_cur
     )
     present_days = cursor.fetchone()["present_days"]
 
-    # Calculate deduction and net salary
+    # Overtime hours for the month
+    cursor.execute(
+        """SELECT COALESCE(SUM(overtime_hours), 0) AS total_overtime
+        FROM attendance
+        WHERE employee_id = %s AND MONTH(date) = %s AND YEAR(date) = %s""",
+        (data.employee_id, data.month, data.year)
+    )
+    total_overtime = float(cursor.fetchone()["total_overtime"])
+
+    # Overtime pay: hourly rate = monthly salary / (total_days * 8 standard hours)
+    hourly_rate = base_salary / (total_days * 8)
+    overtime_pay = round(hourly_rate * total_overtime, 2)
+
+    # Factor into net salary
     deduction = (base_salary / total_days) * (total_days - present_days)
-    net_salary = base_salary - deduction
+    net_salary = base_salary - deduction + overtime_pay
 
     # Delete existing record for same month/year
     cursor.execute(
@@ -49,9 +62,9 @@ def calculate_payroll(data: PayrollRequest, current_user: dict = Depends(get_cur
 
     # Insert new record
     cursor.execute(
-        """INSERT INTO payroll (employee_id, month, year, basic_salary, deductions, net_salary)
-           VALUES (%s, %s, %s, %s, %s, %s)""",
-        (data.employee_id, data.month, data.year, base_salary, round(deduction, 2), round(net_salary, 2))
+    """INSERT INTO payroll (employee_id, month, year, basic_salary, deductions, overtime_hours, overtime_pay, net_salary)
+       VALUES (%s, %s, %s, %s, %s, %s, %s, %s)""",
+    (data.employee_id, data.month, data.year, base_salary, round(deduction, 2), total_overtime, overtime_pay, round(net_salary, 2))
     )
     conn.commit()
 
