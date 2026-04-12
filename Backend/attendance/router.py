@@ -2,6 +2,10 @@ from fastapi import APIRouter, HTTPException, Depends
 from datetime import datetime, time
 from auth.utils import get_current_user
 from db import get_connection
+import csv
+import io
+from fastapi.responses import StreamingResponse
+from typing import Optional
 
 router = APIRouter(prefix="/attendance", tags=["Attendance"])
 
@@ -15,7 +19,7 @@ def mark_attendance(current_user: dict = Depends(get_current_user)):
     cursor = conn.cursor(dictionary=True)
 
 
-    # --- (US-14 ) ---
+    # --- (added ) ---
     # Check if the employee has an APPROVED leave for today
     leave_query = """
         SELECT id FROM leaves 
@@ -236,3 +240,17 @@ def get_monthly_attendance_report(current_user: dict = Depends(get_current_user)
     finally:
         cursor.close()
         conn.close()
+#us 14
+@router.get("/leaderboard")
+def get_leaderboard():
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    # calls the US-14 View 
+    cursor.execute("SELECT * FROM attendance_ranking")
+    ranking = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+    return ranking
+

@@ -111,6 +111,20 @@ def setup_database():
         JOIN attendance a ON e.id = a.employee_id
         WHERE a.status = 'present'
         GROUP BY e.id, e.name, MONTH(a.date), YEAR(a.date);
+        """,
+
+        # US-14: Attendance Ranking (Leaderboard)
+        """
+        CREATE OR REPLACE VIEW attendance_ranking AS
+        SELECT 
+            e.id AS employee_id,
+            e.name AS employee_name,
+            COUNT(a.id) AS total_days,
+            RANK() OVER (ORDER BY COUNT(a.id) DESC) as rank_position
+        FROM employees e
+        JOIN attendance a ON e.id = a.employee_id
+        WHERE a.status = 'present'
+        GROUP BY e.id, e.name;
         """
         ]
 

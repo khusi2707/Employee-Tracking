@@ -4,6 +4,8 @@ from db import get_connection
 from .schemas import LeaveRequest, LeaveStatusUpdate
 from typing import Optional
 
+
+
 router = APIRouter(prefix="/leave", tags=["Leave"])
 
 @router.post("/apply", status_code=201)
