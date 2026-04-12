@@ -45,10 +45,12 @@ def setup_database():
                 employee_id INT NOT NULL,
                 date DATE NOT NULL,
                 check_in DATETIME,
+                check_out DATETIME,
+                overtime_hours DECIMAL(4, 2) DEFAULT 0.00,
                 status VARCHAR(20) DEFAULT 'present',
                 FOREIGN KEY (employee_id) REFERENCES employees(id)
             )
-            """,
+""",
             """
             CREATE TABLE IF NOT EXISTS leaves (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -70,6 +72,8 @@ def setup_database():
                 year INT NOT NULL,
                 basic_salary DECIMAL(10, 2),
                 deductions DECIMAL(10, 2),
+                overtime_hours DECIMAL(6, 2) DEFAULT 0.00,
+                overtime_pay DECIMAL(10, 2) DEFAULT 0.00,
                 net_salary DECIMAL(10, 2),
                 FOREIGN KEY (employee_id) REFERENCES employees(id)
             )
