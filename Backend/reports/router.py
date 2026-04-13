@@ -94,12 +94,8 @@ def export_master_report(
     year: Optional[int] = None,
     current_user: dict = Depends(get_current_user)  
 ):
-    # Verify the person
     if current_user.get("role") not in ("hr", "admin"):
-        raise HTTPException(
-            status_code=403, 
-            detail="Access denied. You must be an HR or Admin to download reports."
-        )
+        raise HTTPException(status_code=403, detail="Access denied.")
 
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
@@ -109,17 +105,15 @@ def export_master_report(
             query = "SELECT * FROM attendance_ranking"
             cursor.execute(query)
             filename = "Attendance_Ranking.csv"
-            
         elif report_type == "summary":
             if not month or not year:
-                raise HTTPException(status_code=400, detail="Month and Year are required for summary")
+                raise HTTPException(status_code=400, detail="Month and Year required")
             query = "SELECT * FROM monthly_attendance_report WHERE month = %s AND year = %s"
             cursor.execute(query, (month, year))
             filename = f"Attendance_Summary_{month}_{year}.csv"
-            
         elif report_type == "leaves":
             if not month or not year:
-                raise HTTPException(status_code=400, detail="Month and Year are required for leaves")
+                raise HTTPException(status_code=400, detail="Month and Year required")
             query = """
                 SELECT e.name AS employee_name, l.leave_type, l.start_date, 
                        l.end_date, l.status
@@ -129,7 +123,7 @@ def export_master_report(
             cursor.execute(query, (month, year))
             filename = f"Leaves_Report_{month}_{year}.csv"
         else:
-            raise HTTPException(status_code=400, detail="Invalid type. Use ranking, summary, or leaves")
+            raise HTTPException(status_code=400, detail="Invalid type")
 
         rows = cursor.fetchall()
     finally:
@@ -139,16 +133,22 @@ def export_master_report(
     if not rows:
         raise HTTPException(status_code=404, detail="No data found for this report.")
 
-    #  Convert database rows to CSV
+    # --- ADD THIS CLEANING LOOP TO PREVENT BREAKING ---
+    clean_rows = []
+    for row in rows:
+        # Converts Decimals, Dates, and Nulls to strings so the CSV writer is happy
+        clean_row = {k: (str(v) if v is not None else "") for k, v in row.items()}
+        clean_rows.append(clean_row)
+
     output = io.StringIO()
-    writer = csv.DictWriter(output, fieldnames=rows[0].keys())
+    # Use clean_rows here instead of rows
+    writer = csv.DictWriter(output, fieldnames=clean_rows[0].keys())
     writer.writeheader()
-    writer.writerows(rows)
+    writer.writerows(clean_rows)
     
-    #  Stream the file for download
     output.seek(0)
     return StreamingResponse(
-        iter([output.getvalue()]),
+        io.StringIO(output.getvalue()), # Wrapped in StringIO for safety
         media_type="text/csv",
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
