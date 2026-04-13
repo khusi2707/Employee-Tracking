@@ -32,6 +32,7 @@ jobs:
           api_location: ""
           output_location: "dist"
           app_build_command: "npm install && npm run build" # This forces it to install correctly
+          skip_app_build: false
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
