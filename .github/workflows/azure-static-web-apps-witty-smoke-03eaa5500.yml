@@ -9,9 +9,8 @@ on:
     branches:
       - main
 
-# This environment variable forces the runner to use Node 24 
-# and solves the deprecation error for Azure/static-web-apps-deploy@v1
 env:
+  # This fixes the Node 20 deprecation warning for the runner
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
@@ -32,12 +31,20 @@ jobs:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_WITTY_SMOKE_03EAA5500 }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: "upload"
-          ###### Repository/Build Configurations ######
-          app_location: "Frontend"
+          
+          # 1. Location Settings
+          app_location: "Frontend" 
           api_location: ""
           output_location: "dist"
-          app_build_command: "npm install && npm run build"
+          
+          # 2. The Build Fix
+          # Using 'npm ci' is safer for Vite projects to ensure all plugins load correctly
+          app_build_command: "npm ci && npm run build"
           skip_app_build: false
+          
+        env:
+          # 3. This tells Azure to use Node 20 specifically for the Vite build
+          NODE_VERSION: 20.x
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
