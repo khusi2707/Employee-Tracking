@@ -6,13 +6,14 @@ import os
 load_dotenv(find_dotenv())
 
 def get_connection(include_db=True):
-    """Connects to MySQL. set include_db=False to connect to the server only."""
     return mysql.connector.connect(
         host=os.getenv("DB_HOST"),
-        port=int(os.getenv("DB_PORT", 3306)),
+        port=int(os.getenv("DB_PORT", 4000)), 
         user=os.getenv("DB_USER"),
         password=os.getenv("DB_PASSWORD"),
-        database=os.getenv("DB_NAME") if include_db else None
+        database=os.getenv("DB_NAME") if include_db else None,
+        # This line tells TiDB to use a secure connection
+        ssl_verify_cert=False 
     )
 
 def setup_database():
